@@ -1,103 +1,331 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useBlogStore } from '@/stores/blog'
+import { marked } from 'marked'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github-dark.css'
+import { formatDate } from '@/utils/formatDate'
 
 const route = useRoute()
-// 将来的にIDを使って記事を取得する
-// eslint-disable-next-line no-unused-vars
-const postId = computed(() => route.params.id)
+const router = useRouter()
+const blogStore = useBlogStore()
 
-// ダミーの記事詳細データ
-const post = ref({
-  id: 1,
-  title: 'Vue 3の新機能について',
-  content: `
-# Vue 3の新機能について
+// 記事データ
+const post = computed(() => blogStore.getPostById(route.params.id))
 
-Vue 3は、Vue.jsの最新メジャーバージョンで、多くの改善と新機能が導入されました。
+// 目次データ
+const tableOfContents = ref([])
+const activeHeadingId = ref('')
 
-## Composition API
+// Markedの設定
+marked.setOptions({
+  highlight: (code, lang) => {
+    if (lang && hljs.getLanguage(lang)) {
+      return hljs.highlight(code, { language: lang }).value
+    }
+    return hljs.highlightAuto(code).value
+  },
+  breaks: true,
+  gfm: true
+})
 
-Composition APIは、コンポーネントのロジックをより柔軟に構成できる新しいAPIです。
-複雑なコンポーネントのロジックを整理し、再利用可能な形で抽出することができます。
+// 見出しの処理を後から行う
+const extractHeadings = (html) => {
+  tableOfContents.value = []
+  
+  // 正規表現で見出しを抽出
+  const headingRegex = /<h([1-3])>([^<]+)<\/h[1-3]>/g
+  let match
+  
+  while ((match = headingRegex.exec(html)) !== null) {
+    const level = parseInt(match[1])
+    const text = match[2]
+    const id = text.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-')
+    
+    tableOfContents.value.push({
+      id,
+      text,
+      level
+    })
+  }
+  
+  // 見出しにIDを追加
+  return html.replace(/<h([1-3])>([^<]+)<\/h([1-3])>/g, (match, level, text, closeLevel) => {
+    const id = text.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-')
+    return `<h${level} id="${id}">${text}</h${closeLevel}>`
+  })
+}
 
-## Teleport
+// Markdownをレンダリング
+const renderedContent = computed(() => {
+  if (!post.value || !post.value.content) return ''
+  
+  // Markdownをパース
+  const html = marked(post.value.content)
+  
+  // 見出しを処理
+  return extractHeadings(html)
+})
 
-Teleportを使用すると、コンポーネントの一部を、DOMツリーの異なる場所にレンダリングできます。
-これは、モーダルやツールチップなどのUIパターンに特に便利です。
+// 前後の記事
+const prevPost = computed(() => {
+  const currentIndex = blogStore.posts.findIndex(p => p.id === Number(route.params.id))
+  return currentIndex > 0 ? blogStore.posts[currentIndex - 1] : null
+})
 
-## Fragments
+const nextPost = computed(() => {
+  const currentIndex = blogStore.posts.findIndex(p => p.id === Number(route.params.id))
+  return currentIndex < blogStore.posts.length - 1 ? blogStore.posts[currentIndex + 1] : null
+})
 
-Vue 3では、コンポーネントが複数のルート要素を持つことができるようになりました。
-これにより、不要なラッパー要素を削除できます。
+// 関連記事（同じカテゴリーの記事）
+const relatedPosts = computed(() => {
+  if (!post.value) return []
+  return blogStore.posts
+    .filter(p => p.category === post.value.category && p.id !== post.value.id)
+    .slice(0, 3)
+})
 
-## パフォーマンスの改善
+// 目次クリック時のスクロール
+const scrollToHeading = (id) => {
+  const element = document.getElementById(id)
+  if (element) {
+    const offset = 80 // ヘッダーの高さ分オフセット
+    const top = element.getBoundingClientRect().top + window.scrollY - offset
+    window.scrollTo({
+      top,
+      behavior: 'smooth'
+    })
+  }
+}
 
-Vue 3は、Vue 2と比較して大幅なパフォーマンスの改善を実現しています。
-- バンドルサイズの削減
-- 初期レンダリングの高速化
-- メモリ使用量の削減
-  `,
-  date: '2024-01-15',
-  category: 'Vue.js',
-  readTime: '5 min read',
-  author: '山田 太郎'
+// スクロール時の現在位置検出
+const updateActiveHeading = () => {
+  const headings = tableOfContents.value.map(item => ({
+    id: item.id,
+    element: document.getElementById(item.id)
+  })).filter(item => item.element)
+  
+  if (headings.length === 0) return
+  
+  const scrollPosition = window.scrollY + 150 // ヘッダー分のオフセット
+  
+  // デフォルトは最初の見出し
+  let activeId = headings[0].id
+  
+  // 現在のスクロール位置を超えた最後の見出しを見つける
+  for (const heading of headings) {
+    if (heading.element.offsetTop <= scrollPosition) {
+      activeId = heading.id
+    } else {
+      break
+    }
+  }
+  
+  // 状態が変わった場合のみ更新
+  if (activeHeadingId.value !== activeId) {
+    activeHeadingId.value = activeId
+  }
+}
+
+// スロットリング関数
+let scrollTimeout = null
+const throttledUpdate = () => {
+  if (scrollTimeout) return
+  scrollTimeout = setTimeout(() => {
+    updateActiveHeading()
+    scrollTimeout = null
+  }, 100)
+}
+
+onMounted(() => {
+  nextTick(() => {
+    // 初期表示時に目次を設定
+    setTimeout(() => {
+      updateActiveHeading()
+    }, 500)
+    
+    window.addEventListener('scroll', throttledUpdate)
+  })
 })
 </script>
 
 <template>
-  <article class="max-w-4xl mx-auto">
-    <!-- 記事ヘッダー -->
-    <header class="mb-8">
-      <div class="flex items-center gap-4 text-sm text-gray-500 mb-4">
-        <span>{{ post.date }}</span>
-        <span>•</span>
-        <span class="text-primary-600">{{ post.category }}</span>
-        <span>•</span>
-        <span>{{ post.readTime }}</span>
+  <article v-if="post" class="max-w-7xl mx-auto">
+    <div class="lg:grid lg:grid-cols-12 lg:gap-8">
+      <!-- メインコンテンツ -->
+      <div class="lg:col-span-8">
+        <!-- 記事ヘッダー -->
+        <header class="mb-8">
+          <!-- カテゴリーとメタ情報 -->
+          <div class="flex items-center gap-4 text-sm text-gray-500 mb-4">
+            <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full font-medium">
+              {{ post.category }}
+            </span>
+            <span>{{ formatDate(post.date, 'long') }}</span>
+            <span>•</span>
+            <span>{{ post.readTime }}</span>
+          </div>
+          
+          <!-- タイトル -->
+          <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            {{ post.title }}
+          </h1>
+          
+          <!-- 著者情報 -->
+          <div class="flex items-center gap-3 pb-6 border-b border-gray-200">
+            <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+              <span class="text-gray-500">👤</span>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">{{ post.author }}</p>
+              <p class="text-sm text-gray-500">
+                <span v-if="post.updatedAt">
+                  更新: {{ formatDate(post.updatedAt, 'short') }}
+                </span>
+              </p>
+            </div>
+          </div>
+        </header>
+        
+        <!-- サムネイル画像 -->
+        <div v-if="post.thumbnail" class="mb-8">
+          <img 
+            :src="post.thumbnail" 
+            :alt="post.title"
+            class="w-full rounded-lg shadow-sm"
+          >
+        </div>
+        
+        <!-- 記事本文 -->
+        <div 
+          class="prose prose-lg max-w-none prose-headings:scroll-mt-20 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-gray-900"
+          v-html="renderedContent"
+        ></div>
+        
+        <!-- タグ -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+          <div class="flex flex-wrap gap-2">
+            <span 
+              v-for="tag in post.tags" 
+              :key="tag"
+              class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+            >
+              #{{ tag }}
+            </span>
+          </div>
+        </div>
+        
+        <!-- 前後の記事ナビゲーション -->
+        <nav class="mt-12 pt-8 border-t border-gray-200">
+          <div class="grid md:grid-cols-2 gap-4">
+            <!-- 前の記事 -->
+            <RouterLink
+              v-if="prevPost"
+              :to="`/blog/${prevPost.id}`"
+              class="group p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all"
+            >
+              <p class="text-sm text-gray-500 mb-1">← 前の記事</p>
+              <p class="font-medium text-gray-900 group-hover:text-primary-600">
+                {{ prevPost.title }}
+              </p>
+            </RouterLink>
+            <div v-else></div>
+            
+            <!-- 次の記事 -->
+            <RouterLink
+              v-if="nextPost"
+              :to="`/blog/${nextPost.id}`"
+              class="group p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all text-right"
+            >
+              <p class="text-sm text-gray-500 mb-1">次の記事 →</p>
+              <p class="font-medium text-gray-900 group-hover:text-primary-600">
+                {{ nextPost.title }}
+              </p>
+            </RouterLink>
+          </div>
+        </nav>
       </div>
       
-      <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ post.title }}</h1>
-      
-      <div class="flex items-center gap-2 text-gray-600">
-        <span>By</span>
-        <span class="font-medium">{{ post.author }}</span>
-      </div>
-    </header>
-    
-    <!-- 記事本文 -->
-    <div class="prose prose-lg max-w-none">
-      <div class="bg-white rounded-lg shadow-sm p-8">
-        <div v-html="convertMarkdown(post.content)"></div>
-      </div>
-    </div>
-    
-    <!-- 戻るリンク -->
-    <div class="mt-8">
-      <RouterLink 
-        to="/blog"
-        class="text-primary-600 hover:text-primary-700 font-medium inline-flex items-center gap-1"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        ブログ一覧に戻る
-      </RouterLink>
+      <!-- サイドバー -->
+      <aside class="lg:col-span-4 mt-8 lg:mt-0">
+        <div class="sticky top-24">
+          <!-- 目次 -->
+          <div v-if="tableOfContents.length > 0" class="bg-gray-50 rounded-lg p-6 mb-8">
+            <h3 class="font-bold text-gray-900 mb-4">目次</h3>
+            <nav>
+              <ul class="space-y-2">
+                <li 
+                  v-for="item in tableOfContents"
+                  :key="item.id"
+                  :class="[
+                    'transition-colors cursor-pointer',
+                    item.level === 2 ? 'ml-4' : item.level === 3 ? 'ml-8' : '',
+                  ]"
+                >
+                  <a
+                    @click.prevent="scrollToHeading(item.id)"
+                    :class="[
+                      'block py-1 text-sm hover:text-primary-600',
+                      activeHeadingId === item.id ? 'text-primary-600 font-medium' : 'text-gray-600'
+                    ]"
+                  >
+                    {{ item.text }}
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+          
+          <!-- 関連記事 -->
+          <div v-if="relatedPosts.length > 0" class="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 class="font-bold text-gray-900 mb-4">関連記事</h3>
+            <div class="space-y-4">
+              <RouterLink
+                v-for="relatedPost in relatedPosts"
+                :key="relatedPost.id"
+                :to="`/blog/${relatedPost.id}`"
+                class="block group"
+              >
+                <p class="text-sm text-gray-500 mb-1">{{ formatDate(relatedPost.date) }}</p>
+                <p class="font-medium text-gray-900 group-hover:text-primary-600 transition-colors">
+                  {{ relatedPost.title }}
+                </p>
+              </RouterLink>
+            </div>
+          </div>
+        </div>
+      </aside>
     </div>
   </article>
+  
+  <!-- 記事が見つからない場合 -->
+  <div v-else class="text-center py-16">
+    <h2 class="text-2xl font-bold text-gray-900 mb-4">記事が見つかりません</h2>
+    <RouterLink 
+      to="/blog"
+      class="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+    >
+      ブログ一覧へ戻る
+    </RouterLink>
+  </div>
 </template>
 
-<script>
-// 簡易的なMarkdown変換（実際のプロジェクトではmarkedなどを使用）
-function convertMarkdown(markdown) {
-  return markdown
-    .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mb-4">$1</h1>')
-    .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-semibold mb-3 mt-6">$1</h2>')
-    .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-2 mt-4">$1</h3>')
-    .replace(/\n\n/gim, '</p><p class="mb-4">')
-    .replace(/^- (.*$)/gim, '<li class="ml-4">$1</li>')
-    .replace(/(<li>.*<\/li>)/s, '<ul class="list-disc mb-4">$1</ul>')
-    .replace(/^/gim, '<p class="mb-4">')
-    .replace(/$/gim, '</p>')
+<style>
+/* コードブロックのスタイル調整 */
+.prose pre {
+  @apply rounded-lg;
 }
-</script>
+
+.prose pre code {
+  @apply bg-transparent p-0;
+}
+
+/* スクロール時のヘッダー用マージン */
+.prose h1,
+.prose h2,
+.prose h3 {
+  scroll-margin-top: 5rem;
+}
+</style>
