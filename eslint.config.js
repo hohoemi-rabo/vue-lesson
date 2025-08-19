@@ -10,12 +10,13 @@ export default defineConfig([
     files: ['**/*.{js,mjs,jsx,vue}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', 'node_modules/**']),
 
   {
     languageOptions: {
       globals: {
         ...globals.browser,
+        ...globals.node
       },
     },
   },
@@ -23,4 +24,16 @@ export default defineConfig([
   js.configs.recommended,
   ...pluginVue.configs['flat/essential'],
   skipFormatting,
+  
+  // カスタムルール
+  {
+    rules: {
+      'vue/multi-word-component-names': 'off',
+      'vue/no-reserved-component-names': 'warn',
+      'vue/no-unused-vars': 'warn',
+      'no-unused-vars': 'warn',
+      'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+      'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off'
+    }
+  }
 ])
