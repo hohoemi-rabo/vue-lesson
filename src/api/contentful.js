@@ -3,6 +3,8 @@
  * ブログコンテンツの取得を管理
  */
 
+import { richTextToHtml, richTextToPlainText } from '@/utils/richTextRenderer'
+
 // 環境変数から設定を取得
 const SPACE_ID = import.meta.env.VITE_CONTENTFUL_SPACE_ID
 const ACCESS_TOKEN = import.meta.env.VITE_CONTENTFUL_ACCESS_TOKEN
@@ -58,26 +60,6 @@ async function fetchFromContentful(endpoint, options = {}) {
 }
 
 /**
- * リッチテキストをプレーンテキストに変換
- */
-function richTextToPlainText(richText) {
-  if (!richText || !richText.content) return ''
-  
-  function extractText(nodes) {
-    return nodes.map(node => {
-      if (node.nodeType === 'text') {
-        return node.value
-      } else if (node.content) {
-        return extractText(node.content)
-      }
-      return ''
-    }).join('')
-  }
-  
-  return extractText(richText.content)
-}
-
-/**
  * エントリデータを正規化
  */
 function normalizeEntry(entry, includes = {}) {
@@ -126,8 +108,15 @@ function normalizeEntry(entry, includes = {}) {
       const resolvedTag = resolveLink(value, includes)
       normalizedFields[key] = resolvedTag ? [resolvedTag] : []
     } else if (value && value.nodeType === 'document') {
-      // リッチテキスト
-      normalizedFields[key] = richTextToPlainText(value)
+      // リッチテキスト - contentフィールドはHTMLとして、excerptはプレーンテキストとして処理
+      if (key === 'content') {
+        // アセットの取得
+        const assets = includes.Asset || []
+        normalizedFields[key] = richTextToHtml(value, assets)
+      } else {
+        // excerpt などはプレーンテキスト
+        normalizedFields[key] = richTextToPlainText(value)
+      }
     } else {
       // その他のフィールド
       normalizedFields[key] = value

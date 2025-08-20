@@ -75,20 +75,14 @@ const extractHeadings = (html) => {
   })
 }
 
-// Markdownをレンダリング
+// コンテンツをレンダリング
 const renderedContent = computed(() => {
   if (!post.value || !post.value.content) return ''
   
-  // ContentfulのリッチテキストはすでにHTMLとして取得されるため、
-  // Markdownパースは不要だが、見出しの処理は必要
+  // ContentfulのリッチテキストはすでにHTMLとして変換済み
   let html = post.value.content
   
-  // もしcontentがMarkdown形式の場合
-  if (typeof post.value.content === 'string' && post.value.content.includes('#')) {
-    html = marked(post.value.content)
-  }
-  
-  // 見出しを処理
+  // 見出しにIDを追加して目次を生成
   return extractHeadings(html)
 })
 
@@ -270,7 +264,11 @@ onUnmounted(() => {
         
         <!-- 記事本文 -->
         <div 
-          class="prose prose-sm sm:prose-base lg:prose-lg max-w-none prose-headings:scroll-mt-20 prose-h1:text-2xl sm:prose-h1:text-3xl prose-h2:text-xl sm:prose-h2:text-2xl prose-h3:text-lg sm:prose-h3:text-xl prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-gray-900 prose-pre:overflow-x-auto"
+          class="prose max-w-none
+                 prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded 
+                 prose-code:before:content-none prose-code:after:content-none 
+                 prose-pre:bg-gray-900 prose-pre:overflow-x-auto
+                 dark:prose-code:bg-gray-800 dark:prose-pre:bg-gray-800"
           v-html="renderedContent"
         ></div>
         
@@ -322,10 +320,10 @@ onUnmounted(() => {
       <aside class="lg:col-span-4 mt-8 lg:mt-0">
         <div class="lg:sticky lg:top-24">
           <!-- 目次 -->
-          <div v-if="tableOfContents.length > 0" class="bg-gray-50 rounded-lg p-4 sm:p-6 mb-8">
-            <h3 class="font-bold text-gray-900 mb-4">目次</h3>
+          <div v-if="tableOfContents.length > 0" class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 mb-8">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6">目次</h3>
             <nav>
-              <ul class="space-y-2">
+              <ul class="space-y-3">
                 <li 
                   v-for="item in tableOfContents"
                   :key="item.id"
@@ -337,8 +335,9 @@ onUnmounted(() => {
                   <a
                     @click.prevent="scrollToHeading(item.id)"
                     :class="[
-                      'block py-1 text-sm hover:text-primary-600',
-                      activeHeadingId === item.id ? 'text-primary-600 font-medium' : 'text-gray-600'
+                      'block py-2 text-base hover:text-primary-600 dark:hover:text-primary-400 transition-colors',
+                      activeHeadingId === item.id ? 'text-primary-600 dark:text-primary-400 font-semibold' : 'text-gray-700 dark:text-gray-300',
+                      item.level === 1 ? 'font-medium' : ''
                     ]"
                   >
                     {{ item.text }}
@@ -349,17 +348,17 @@ onUnmounted(() => {
           </div>
           
           <!-- 関連記事 -->
-          <div v-if="relatedPosts.length > 0" class="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-            <h3 class="font-bold text-gray-900 mb-4">関連記事</h3>
-            <div class="space-y-4">
+          <div v-if="relatedPosts.length > 0" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6">関連記事</h3>
+            <div class="space-y-5">
               <RouterLink
                 v-for="relatedPost in relatedPosts"
                 :key="relatedPost.id"
                 :to="`/blog/${relatedPost.id}`"
                 class="block group"
               >
-                <p class="text-sm text-gray-500 mb-1">{{ formatDate(relatedPost.date) }}</p>
-                <p class="font-medium text-gray-900 group-hover:text-primary-600 transition-colors">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">{{ formatDate(relatedPost.date) }}</p>
+                <p class="text-base font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                   {{ relatedPost.title }}
                 </p>
               </RouterLink>
@@ -392,10 +391,49 @@ onUnmounted(() => {
   @apply bg-transparent p-0;
 }
 
-/* スクロール時のヘッダー用マージン */
-.prose h1,
-.prose h2,
-.prose h3 {
+/* 見出しのカスタムスタイル */
+.prose h1 {
+  @apply text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-6 mt-8;
   scroll-margin-top: 5rem;
+}
+
+.prose h2 {
+  @apply text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-5 mt-8;
+  scroll-margin-top: 5rem;
+}
+
+.prose h3 {
+  @apply text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 mt-6;
+  scroll-margin-top: 5rem;
+}
+
+.prose h4 {
+  @apply text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-3 mt-5;
+  scroll-margin-top: 5rem;
+}
+
+.prose h5 {
+  @apply text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 mt-4;
+  scroll-margin-top: 5rem;
+}
+
+.prose h6 {
+  @apply text-sm sm:text-base font-medium text-gray-900 dark:text-white mb-2 mt-3;
+  scroll-margin-top: 5rem;
+}
+
+/* 段落のスタイル */
+.prose p {
+  @apply mb-4 leading-relaxed text-gray-700 dark:text-gray-300;
+}
+
+/* リンクのスタイル */
+.prose a {
+  @apply text-primary-600 dark:text-primary-400 no-underline hover:underline;
+}
+
+/* 画像のスタイル */
+.prose img {
+  @apply rounded-lg shadow-md w-full my-4;
 }
 </style>
