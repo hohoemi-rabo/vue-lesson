@@ -28,18 +28,18 @@ defineProps({
     </div>
     
     <!-- コンテンツ -->
-    <div class="p-6">
+    <div class="p-4 sm:p-6">
       <!-- メタ情報 -->
-      <div class="flex items-center gap-3 text-sm text-gray-500 mb-3">
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-500 mb-3">
         <span>{{ formatDate(post.date) }}</span>
-        <span>•</span>
+        <span class="hidden sm:inline">•</span>
         <span class="text-primary-600 font-medium">{{ post.category }}</span>
-        <span>•</span>
-        <span>{{ post.readTime }}</span>
+        <span class="hidden sm:inline">•</span>
+        <span class="hidden sm:inline">{{ post.readTime }}</span>
       </div>
       
       <!-- タイトル -->
-      <h3 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors">
+      <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors">
         <RouterLink :to="`/blog/${post.id}`">
           {{ post.title }}
         </RouterLink>

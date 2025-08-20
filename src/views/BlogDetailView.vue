@@ -152,24 +152,25 @@ onMounted(() => {
 </script>
 
 <template>
-  <article v-if="post" class="max-w-7xl mx-auto">
+  <article v-if="post" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="lg:grid lg:grid-cols-12 lg:gap-8">
       <!-- メインコンテンツ -->
       <div class="lg:col-span-8">
         <!-- 記事ヘッダー -->
         <header class="mb-8">
           <!-- カテゴリーとメタ情報 -->
-          <div class="flex items-center gap-4 text-sm text-gray-500 mb-4">
+          <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mb-4">
             <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full font-medium">
               {{ post.category }}
             </span>
-            <span>{{ formatDate(post.date, 'long') }}</span>
-            <span>•</span>
-            <span>{{ post.readTime }}</span>
+            <span class="hidden sm:inline">{{ formatDate(post.date, 'long') }}</span>
+            <span class="sm:hidden">{{ formatDate(post.date, 'short') }}</span>
+            <span class="hidden sm:inline">•</span>
+            <span class="hidden sm:inline">{{ post.readTime }}</span>
           </div>
           
           <!-- タイトル -->
-          <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
             {{ post.title }}
           </h1>
           
@@ -200,7 +201,7 @@ onMounted(() => {
         
         <!-- 記事本文 -->
         <div 
-          class="prose prose-lg max-w-none prose-headings:scroll-mt-20 prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-gray-900"
+          class="prose prose-sm sm:prose-base lg:prose-lg max-w-none prose-headings:scroll-mt-20 prose-h1:text-2xl sm:prose-h1:text-3xl prose-h2:text-xl sm:prose-h2:text-2xl prose-h3:text-lg sm:prose-h3:text-xl prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-gray-900 prose-pre:overflow-x-auto"
           v-html="renderedContent"
         ></div>
         
@@ -250,9 +251,9 @@ onMounted(() => {
       
       <!-- サイドバー -->
       <aside class="lg:col-span-4 mt-8 lg:mt-0">
-        <div class="sticky top-24">
+        <div class="lg:sticky lg:top-24">
           <!-- 目次 -->
-          <div v-if="tableOfContents.length > 0" class="bg-gray-50 rounded-lg p-6 mb-8">
+          <div v-if="tableOfContents.length > 0" class="bg-gray-50 rounded-lg p-4 sm:p-6 mb-8">
             <h3 class="font-bold text-gray-900 mb-4">目次</h3>
             <nav>
               <ul class="space-y-2">
@@ -279,7 +280,7 @@ onMounted(() => {
           </div>
           
           <!-- 関連記事 -->
-          <div v-if="relatedPosts.length > 0" class="bg-white rounded-lg border border-gray-200 p-6">
+          <div v-if="relatedPosts.length > 0" class="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
             <h3 class="font-bold text-gray-900 mb-4">関連記事</h3>
             <div class="space-y-4">
               <RouterLink

@@ -1,0 +1,94 @@
+/* レスポンシブデザイン用グローバルスタイル */
+
+/* タップターゲットの最小サイズ確保（44x44px） */
+@media (max-width: 767px) {
+  button,
+  a,
+  .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* ナビゲーションリンクのタッチエリア拡大 */
+  nav a {
+    padding: 0.75rem 1rem;
+  }
+  
+  /* フォームフィールドのサイズ調整 */
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px; /* iOSのズーム防止 */
+  }
+}
+
+/* 横向き表示の最適化 */
+@media (orientation: landscape) and (max-height: 500px) {
+  .min-h-screen {
+    min-height: auto;
+  }
+  
+  /* ヒーローセクションの高さ調整 */
+  .hero-section {
+    min-height: 100vh;
+    max-height: 600px;
+  }
+}
+
+/* ハイコントラストモード対応 */
+@media (prefers-contrast: high) {
+  .bg-gray-50 {
+    background-color: #f9fafb;
+  }
+  
+  .text-gray-600 {
+    color: #374151;
+  }
+}
+
+/* プリント用スタイル */
+@media print {
+  /* 不要な要素を非表示 */
+  nav,
+  aside,
+  .no-print,
+  button {
+    display: none !important;
+  }
+  
+  /* 背景色とシャドウを削除 */
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+  
+  /* リンクURLを表示 */
+  a[href]:after {
+    content: " (" attr(href) ")";
+  }
+}
+
+/* スムーススクロール（reducedモーション対応） */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* 画像の最適化 */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* レスポンシブテーブル */
+@media (max-width: 767px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}

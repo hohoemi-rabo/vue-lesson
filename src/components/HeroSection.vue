@@ -63,16 +63,16 @@ onMounted(() => {
       <!-- アニメーション用コンテナ -->
       <div class="animate-fade-in-up">
         <!-- 名前 -->
-        <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-4">
+        <h1 class="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-4">
           山田 太郎
         </h1>
         
         <!-- 職種（タイピングアニメーション） -->
-        <div class="text-xl sm:text-2xl md:text-3xl text-primary-600 font-medium mb-8 h-10">
+        <div class="text-lg xs:text-xl sm:text-2xl md:text-3xl text-primary-600 font-medium mb-6 sm:mb-8 h-8 sm:h-10">
           <span>{{ displayText }}</span>
           <span 
             v-show="!typingComplete && cursorVisible" 
-            class="inline-block w-0.5 h-6 sm:h-7 md:h-8 bg-primary-600 ml-1 align-middle"
+            class="inline-block w-0.5 h-5 sm:h-6 md:h-7 lg:h-8 bg-primary-600 ml-1 align-middle"
           ></span>
         </div>
         
