@@ -9,7 +9,11 @@ const isDev = import.meta.env.DEV
 
 <template>
   <DefaultLayout>
-    <RouterView />
+    <RouterView v-slot="{ Component, route }">
+      <Transition name="fade" mode="out-in">
+        <component :is="Component" :key="route.path" />
+      </Transition>
+    </RouterView>
   </DefaultLayout>
   <DebugInfo v-if="isDev" />
 </template>

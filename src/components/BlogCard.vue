@@ -10,7 +10,7 @@ defineProps({
 </script>
 
 <template>
-  <article class="bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group">
+  <article class="bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group hover-lift">
     <!-- サムネイル画像 -->
     <div class="aspect-[16/10] overflow-hidden bg-gray-100">
       <img 

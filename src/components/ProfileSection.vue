@@ -79,8 +79,8 @@ const groupedSkills = ref({
 <template>
   <section 
     ref="target"
-    class="py-16 md:py-24 transition-all duration-1000"
-    :class="isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'"
+    class="py-16 md:py-24"
+    :class="{ 'animate-fade-up': isVisible }"
   >
     <div class="max-w-6xl mx-auto">
       <!-- セクションタイトル -->
