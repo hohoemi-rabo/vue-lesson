@@ -51,7 +51,7 @@ onMounted(() => {
 <template>
   <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
     <!-- 背景グラデーション -->
-    <div class="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-primary-100"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-primary-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"></div>
     
     <!-- 背景パターン（オプション） -->
     <div class="absolute inset-0 opacity-5">
@@ -63,21 +63,21 @@ onMounted(() => {
       <!-- アニメーション用コンテナ -->
       <div class="animate-fade-in-up">
         <!-- 名前 -->
-        <h1 class="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-4">
+        <h1 class="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white mb-4">
           山田 太郎
         </h1>
         
         <!-- 職種（タイピングアニメーション） -->
-        <div class="text-lg xs:text-xl sm:text-2xl md:text-3xl text-primary-600 font-medium mb-6 sm:mb-8 h-8 sm:h-10">
+        <div class="text-lg xs:text-xl sm:text-2xl md:text-3xl text-primary-600 dark:text-primary-400 font-medium mb-6 sm:mb-8 h-8 sm:h-10">
           <span>{{ displayText }}</span>
           <span 
             v-show="!typingComplete && cursorVisible" 
-            class="inline-block w-0.5 h-5 sm:h-6 md:h-7 lg:h-8 bg-primary-600 ml-1 align-middle"
+            class="inline-block w-0.5 h-5 sm:h-6 md:h-7 lg:h-8 bg-primary-600 dark:bg-primary-400 ml-1 align-middle"
           ></span>
         </div>
         
         <!-- キャッチコピー -->
-        <p class="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-12 animate-fade-in-delayed">
+        <p class="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-12 animate-fade-in-delayed">
           美しく、使いやすく、パフォーマンスの高い<br class="sm:hidden">
           Webアプリケーションを創造します
         </p>
@@ -106,7 +106,7 @@ onMounted(() => {
     <!-- スクロールインジケーター -->
     <button
       @click="scrollToContent"
-      class="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-gray-400 hover:text-gray-600 transition-colors animate-bounce"
+      class="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors animate-bounce"
       aria-label="スクロールダウン"
     >
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
