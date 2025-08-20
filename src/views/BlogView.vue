@@ -1,10 +1,19 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useBlogStore } from '@/stores/blog'
 import BlogCard from '@/components/BlogCard.vue'
 import PaginationNav from '@/components/PaginationNav.vue'
 
 const blogStore = useBlogStore()
+
+// CMS統合: 初期化
+onMounted(async () => {
+  try {
+    await blogStore.initialize()
+  } catch (error) {
+    console.error('ブログストアの初期化エラー:', error)
+  }
+})
 
 // 検索フィールド
 const searchInput = ref('')
@@ -143,8 +152,31 @@ const changeItemsPerPage = (count) => {
       </div>
     </div>
     
+    <!-- ローディング表示 -->
+    <div v-if="blogStore.loading" class="flex justify-center items-center py-16">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <span class="ml-3 text-gray-600 dark:text-gray-300">読み込み中...</span>
+    </div>
+    
+    <!-- エラー表示 -->
+    <div v-else-if="blogStore.error" class="text-center py-16">
+      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 max-w-md mx-auto">
+        <svg class="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+        </svg>
+        <h3 class="text-lg font-medium text-red-800 dark:text-red-200 mb-2">データの読み込みエラー</h3>
+        <p class="text-red-600 dark:text-red-300 text-sm mb-4">{{ blogStore.error }}</p>
+        <button 
+          @click="blogStore.fetchPosts({ forceRefresh: true })"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          再試行
+        </button>
+      </div>
+    </div>
+    
     <!-- ブログカードグリッド -->
-    <div v-if="blogStore.paginatedPosts.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
+    <div v-else-if="blogStore.paginatedPosts.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
       <BlogCard 
         v-for="post in blogStore.paginatedPosts"
         :key="post.id"

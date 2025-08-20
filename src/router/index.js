@@ -35,4 +35,19 @@ const router = createRouter({
   ],
 })
 
+// ナビゲーションガードでデバッグ
+router.beforeEach((to, from, next) => {
+  console.log(`Router: Navigating from ${from.path} to ${to.path}`)
+  next()
+})
+
+router.afterEach((to, from) => {
+  console.log(`Router: Navigation completed from ${from.path} to ${to.path}`)
+})
+
+// ナビゲーションエラーをキャッチ
+router.onError((error) => {
+  console.error('Router error:', error)
+})
+
 export default router

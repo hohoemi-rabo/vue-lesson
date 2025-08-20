@@ -1,4 +1,4 @@
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 
 /**
  * テーマ管理用のコンポーザブル
@@ -69,27 +69,34 @@ export function useTheme() {
   
   // 初期化
   const initTheme = () => {
-    // システム設定を監視
-    updateSystemPreference()
-    
-    if (typeof window !== 'undefined') {
-      mediaQuery.value = window.matchMedia('(prefers-color-scheme: dark)')
-      mediaQuery.value.addEventListener('change', updateSystemPreference)
+    try {
+      // システム設定を監視
+      updateSystemPreference()
+      
+      if (typeof window !== 'undefined') {
+        mediaQuery.value = window.matchMedia('(prefers-color-scheme: dark)')
+        mediaQuery.value.addEventListener('change', updateSystemPreference)
+      }
+      
+      // 保存されたテーマを取得
+      let savedTheme = 'auto'
+      if (typeof localStorage !== 'undefined') {
+        savedTheme = localStorage.getItem('theme') || 'auto'
+      }
+      
+      // 有効なテーマ値かチェック
+      if (!['light', 'dark', 'auto'].includes(savedTheme)) {
+        savedTheme = 'auto'
+      }
+      
+      theme.value = savedTheme
+      updateTheme()
+    } catch (error) {
+      console.error('テーマ初期化エラー:', error)
+      // フォールバック
+      theme.value = 'light'
+      isDark.value = false
     }
-    
-    // 保存されたテーマを取得
-    let savedTheme = 'auto'
-    if (typeof localStorage !== 'undefined') {
-      savedTheme = localStorage.getItem('theme') || 'auto'
-    }
-    
-    // 有効なテーマ値かチェック
-    if (!['light', 'dark', 'auto'].includes(savedTheme)) {
-      savedTheme = 'auto'
-    }
-    
-    theme.value = savedTheme
-    updateTheme()
   }
   
   // システム設定変更の監視
@@ -104,6 +111,12 @@ export function useTheme() {
   
   onMounted(() => {
     initTheme()
+  })
+  
+  onUnmounted(() => {
+    if (mediaQuery.value) {
+      mediaQuery.value.removeEventListener('change', updateSystemPreference)
+    }
   })
   
   // クリーンアップ

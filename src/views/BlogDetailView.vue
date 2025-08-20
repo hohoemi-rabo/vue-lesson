@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBlogStore } from '@/stores/blog'
 import { marked } from 'marked'
@@ -12,7 +12,25 @@ const router = useRouter()
 const blogStore = useBlogStore()
 
 // 記事データ
-const post = computed(() => blogStore.getPostById(route.params.id))
+const post = ref(null)
+
+// CMS統合: 記事データを取得
+onMounted(async () => {
+  try {
+    const fetchedPost = await blogStore.fetchPostById(route.params.id)
+    post.value = fetchedPost
+  } catch (error) {
+    console.error('記事の取得に失敗しました:', error)
+    // フォールバック: ストアから取得を試みる
+    try {
+      await blogStore.initialize()
+      post.value = blogStore.getPostById(route.params.id)
+    } catch (initError) {
+      console.error('ブログストアの初期化エラー:', initError)
+      post.value = null
+    }
+  }
+})
 
 // 目次データ
 const tableOfContents = ref([])
@@ -61,8 +79,14 @@ const extractHeadings = (html) => {
 const renderedContent = computed(() => {
   if (!post.value || !post.value.content) return ''
   
-  // Markdownをパース
-  const html = marked(post.value.content)
+  // ContentfulのリッチテキストはすでにHTMLとして取得されるため、
+  // Markdownパースは不要だが、見出しの処理は必要
+  let html = post.value.content
+  
+  // もしcontentがMarkdown形式の場合
+  if (typeof post.value.content === 'string' && post.value.content.includes('#')) {
+    html = marked(post.value.content)
+  }
   
   // 見出しを処理
   return extractHeadings(html)
@@ -70,12 +94,12 @@ const renderedContent = computed(() => {
 
 // 前後の記事
 const prevPost = computed(() => {
-  const currentIndex = blogStore.posts.findIndex(p => p.id === Number(route.params.id))
+  const currentIndex = blogStore.posts.findIndex(p => p.id === route.params.id)
   return currentIndex > 0 ? blogStore.posts[currentIndex - 1] : null
 })
 
 const nextPost = computed(() => {
-  const currentIndex = blogStore.posts.findIndex(p => p.id === Number(route.params.id))
+  const currentIndex = blogStore.posts.findIndex(p => p.id === route.params.id)
   return currentIndex < blogStore.posts.length - 1 ? blogStore.posts[currentIndex + 1] : null
 })
 
@@ -149,10 +173,55 @@ onMounted(() => {
     window.addEventListener('scroll', throttledUpdate)
   })
 })
+
+// コンポーネントのアンマウント時にクリーンアップ
+onUnmounted(() => {
+  console.log('BlogDetailView unmounting...')
+  
+  // スクロールイベントリスナーを削除
+  window.removeEventListener('scroll', throttledUpdate)
+  
+  // タイムアウトをクリア
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout)
+    scrollTimeout = null
+  }
+  
+  // 追加のクリーンアップ
+  post.value = null
+  tableOfContents.value = []
+  activeHeadingId.value = ''
+  
+  console.log('BlogDetailView unmounted successfully')
+})
 </script>
 
 <template>
-  <article v-if="post" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <!-- ローディング表示 -->
+  <div v-if="blogStore.loading" class="flex justify-center items-center py-16">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+    <span class="ml-3 text-gray-600 dark:text-gray-300">記事を読み込み中...</span>
+  </div>
+  
+  <!-- エラー表示 -->
+  <div v-else-if="blogStore.error" class="text-center py-16">
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 max-w-md mx-auto">
+      <svg class="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+      </svg>
+      <h3 class="text-lg font-medium text-red-800 dark:text-red-200 mb-2">記事の読み込みエラー</h3>
+      <p class="text-red-600 dark:text-red-300 text-sm mb-4">{{ blogStore.error }}</p>
+      <RouterLink 
+        to="/blog"
+        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+      >
+        ブログ一覧へ戻る
+      </RouterLink>
+    </div>
+  </div>
+  
+  <!-- 記事コンテンツ -->
+  <article v-else-if="post" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="lg:grid lg:grid-cols-12 lg:gap-8">
       <!-- メインコンテンツ -->
       <div class="lg:col-span-8">

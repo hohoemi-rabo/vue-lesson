@@ -1,15 +1,26 @@
 <script setup>
 import { RouterLink } from 'vue-router'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { APP_NAME, NAV_ITEMS } from '@/utils/constants'
 import ScrollProgress from '@/components/ScrollProgress.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import { useGlobalTheme } from '@/composables/useTheme'
 
 const isMobileMenuOpen = ref(false)
 
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
 }
+
+// テーマ初期化を確実に実行
+const { theme } = useGlobalTheme()
+
+onMounted(() => {
+  // テーマ初期化の確認
+  if (!theme.value) {
+    console.warn('テーマが初期化されていません')
+  }
+})
 </script>
 
 <template>
